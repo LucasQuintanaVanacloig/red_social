@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1050104026404",
+    "project_id": "bbdd-red-social",
+    "storage_bucket": "bbdd-red-social.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1050104026404:android:8d9590532ab8001cb54fb1",
+        "android_client_info": {
+          "package_name": "com.example.red_social"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSFh0hJBknde0MBmO8F-g2WAffd487YDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1050104026404:android:c79d05dafb21e52cb54fb1",
+        "android_client_info": {
+          "package_name": "com.example.registro_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSFh0hJBknde0MBmO8F-g2WAffd487YDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
