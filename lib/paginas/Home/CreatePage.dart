@@ -1,7 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
 import 'package:red_social/paginas/auth/servicios/servicioPublicaciones.dart';
 
 class CreatePage extends StatefulWidget {
@@ -37,16 +37,11 @@ class _CreatePageState extends State<CreatePage> {
     setState(() => _cargando = true);
 
     try {
-      // 1) Subir la imagen y obtener la ruta/path
       final urlImagen = await _servicioPublicaciones.subirImagen(_image!);
-
-      // 2) Crear la publicación con argumentos nombrados
       await _servicioPublicaciones.crearPublicacion(
         descripcion: _descripcionController.text.trim(),
         imagenPath: urlImagen,
       );
-
-      // 3) Confirmación al usuario
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Publicación creada exitosamente")),
       );
