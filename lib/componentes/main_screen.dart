@@ -35,9 +35,12 @@ class _MainScreenState extends State<MainScreen> {
         children: _screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.black, // Fondo negro
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.white, // Ítem activo en blanco
+        unselectedItemColor: Colors.white70, // Ítems inactivos gris claro
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: "Buscar"),
