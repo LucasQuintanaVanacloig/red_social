@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:red_social/paginas/Configuracion/settings.dart';
-import 'package:red_social/paginas/Home/CreatePage.dart';
 import 'package:red_social/paginas/auth/servicios/servicios_auth.dart';
-
-import 'home.dart';
-import 'search.dart';
 
 class Profile extends StatefulWidget {
   final String? userId;
@@ -14,11 +12,15 @@ class Profile extends StatefulWidget {
   @override
   State<Profile> createState() => _ProfileState();
 }
+// hola 
 
 class _ProfileState extends State<Profile> {
   String? userId;
   String? nomUsuari;
   final ServiciosAuth _authService = ServiciosAuth();
+
+  File? _imagenPerfil;
+  final TextEditingController _nombreController = TextEditingController();
 
   @override
   void initState() {
@@ -28,10 +30,73 @@ class _ProfileState extends State<Profile> {
   }
 
   Future<void> _cargarNombreUsuario() async {
-    String? nombre = await ServiciosAuth().obtenerNombreUsuario();
+    String? nombre = await _authService.obtenerNombreUsuario();
     setState(() {
       nomUsuari = nombre ?? "No encontrado";
+      _nombreController.text = nomUsuari!;
     });
+  }
+
+  void _mostrarModalEditarPerfil() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Editar perfil'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    final picker = ImagePicker();
+                    final XFile? imagen = await picker.pickImage(source: ImageSource.gallery);
+                    if (imagen != null) {
+                      setState(() {
+                        _imagenPerfil = File(imagen.path);
+                      });
+                    }
+                  },
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundImage: _imagenPerfil != null ? FileImage(_imagenPerfil!) : null,
+                    child: _imagenPerfil == null ? const Icon(Icons.camera_alt, size: 40) : null,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _nombreController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre de usuario',
+                    hintText: 'Escribe tu nombre...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+              ),
+              child: const Text('Guardar cambios'),
+              onPressed: () async {
+                final nuevoNombre = _nombreController.text.trim();
+                if (nuevoNombre.isNotEmpty) {
+                  await _authService.actualizarNombreUsuario(nuevoNombre);
+                  await _cargarNombreUsuario();
+                }
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showBottomSheet(String title) {
@@ -106,11 +171,11 @@ class _ProfileState extends State<Profile> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFFFD5E53), // Sunset orange
+              Color(0xFFFD5E53),
               Color(0xFFFD754D),
               Color(0xFFFE8714),
               Color(0xFFFE6900),
-              Color(0xFF1A1A40), // Winter night
+              Color(0xFF1A1A40),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -143,13 +208,16 @@ class _ProfileState extends State<Profile> {
               ),
             ),
             const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  "Read More >",
-                  style: TextStyle(color: Colors.white70),
+                child: TextButton(
+                  onPressed: _mostrarModalEditarPerfil,
+                  child: const Text(
+                    "Editar perfil",
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
                 ),
               ),
             ),

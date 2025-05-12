@@ -7,7 +7,7 @@ import 'paginas/auth/Index.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+// hola
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

@@ -63,17 +63,7 @@ class ConfigCuenta extends StatelessWidget {
               );
             },
           ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.edit, color: Colors.black),
-            title: const Text("Editar perfil"),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ConfigCuentaEditar()),
-              );
-            },
-          ),
+       
           const Divider(),
           ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
