@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:red_social/paginas/Configuracion/config_cuenta.dart';
+import 'package:red_social/paginas/Configuracion/config_cuenta_editar.dart';
 import 'package:red_social/paginas/Configuracion/config_privacidad.dart';
 import 'package:red_social/paginas/Configuracion/config_notificaciones.dart';
 import 'package:red_social/paginas/auth/Index.dart';
@@ -50,7 +51,7 @@ class _SettingsState extends State<Settings> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ConfigCuenta()),
+                MaterialPageRoute(builder: (context) => const ConfigCuentaEditar()),
               );
             },
           ),

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -61,54 +60,150 @@ class _CreatePageState extends State<CreatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Crear publicación"),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _image != null
-                ? Image.file(_image!, height: 250)
-                : Container(
-                    height: 250,
-                    color: Colors.grey[300],
-                    alignment: Alignment.center,
-                    child: const Text("No hay imagen seleccionada"),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFFD5E53),
+              Color(0xFFFD754D),
+              Color(0xFFFE8714),
+              Color(0xFFFE6900),
+              Color(0xFF1A1A40),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
                   ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descripcionController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: "Descripción",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.image),
-              label: const Text("Seleccionar Imagen"),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: _cargando ? null : _publicar,
-              icon: const Icon(Icons.upload),
-              label: _cargando
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text("Publicar"),
-            ),
-          ],
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        AppBar(
+                          backgroundColor: const Color.fromARGB(0, 0, 0, 0),
+                          elevation: 0,
+                          title: const Text(
+                            "Nueva publicación",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          centerTitle: true,
+                          automaticallyImplyLeading: false,
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          height: 250,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: _image != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.file(
+                                    _image!,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Center(
+                                  child: Text(
+                                    "No hay imagen seleccionada",
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _descripcionController,
+                          maxLines: 4,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: "Descripción",
+                            labelStyle: const TextStyle(color: Colors.white70),
+                            filled: true,
+                            fillColor: Colors.black.withOpacity(0.2),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.white24),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.white24),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.orangeAccent),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _pickImage,
+                                icon: const Icon(Icons.image, color: Colors.white),
+                                label: const Text("Seleccionar Imagen"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orangeAccent.withOpacity(0.8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _cargando ? null : _publicar,
+                                icon: _cargando
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.upload, color: Colors.white),
+                                label: _cargando
+                                    ? const Text("Publicando...", style: TextStyle(color: Colors.white))
+                                    : const Text("Publicar"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrangeAccent.withOpacity(0.9),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
