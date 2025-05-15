@@ -5,7 +5,7 @@ class ServiciosAuth {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // ✅ Obtener usuario actual
+  // ✅ Obtener UID del usuario actual
   String? getUsuarioActualUID() {
     return _auth.currentUser?.uid;
   }
@@ -23,7 +23,16 @@ class ServiciosAuth {
         password: password,
       );
 
-      await _guardarDatosUsuario(cred.user!, email, nombre);
+      // Guardar en Firestore directamente sin clase Usuario
+      await _firestore.collection("Usuarios").doc(cred.user!.uid).set({
+        "uid": cred.user!.uid,
+        "email": email,
+        "nombre": nombre,
+        "followersCount": 0,
+        "followingCount": 0,
+        "fecha_creacion": FieldValue.serverTimestamp(),
+      });
+
       return null;
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
@@ -49,10 +58,20 @@ class ServiciosAuth {
         password: password,
       );
 
-      DocumentSnapshot doc = await _firestore.collection("Usuarios").doc(cred.user!.uid).get();
+      final uid = cred.user!.uid;
+
+      DocumentSnapshot doc = await _firestore.collection("Usuarios").doc(uid).get();
 
       if (!doc.exists) {
-        await _guardarDatosUsuario(cred.user!, email, "");
+        // En caso de que el documento no exista (por algún error previo), lo crea
+        await _firestore.collection("Usuarios").doc(uid).set({
+          "uid": uid,
+          "email": email,
+          "nombre": "",
+          "followersCount": 0,
+          "followingCount": 0,
+          "fecha_creacion": FieldValue.serverTimestamp(),
+        });
       }
 
       return null;
@@ -64,14 +83,11 @@ class ServiciosAuth {
   // ✅ Obtener nombre del usuario actual
   Future<String?> obtenerNombreUsuario() async {
     try {
-      String? uid = getUsuarioActualUID();
+      final uid = getUsuarioActualUID();
       if (uid == null) return null;
 
       DocumentSnapshot doc = await _firestore.collection("Usuarios").doc(uid).get();
-      if (doc.exists) {
-        return doc.get("nombre") ?? "";
-      }
-      return null;
+      return doc.exists ? doc.get("nombre") ?? "" : null;
     } catch (e) {
       return null;
     }
@@ -80,7 +96,7 @@ class ServiciosAuth {
   // ✅ Actualizar nombre del usuario
   Future<void> actualizarNombreUsuario(String nuevoNombre) async {
     try {
-      String? uid = getUsuarioActualUID();
+      final uid = getUsuarioActualUID();
       if (uid != null) {
         await _firestore.collection("Usuarios").doc(uid).update({
           "nombre": nuevoNombre,
@@ -89,15 +105,5 @@ class ServiciosAuth {
     } catch (e) {
       print("Error al actualizar el nombre: $e");
     }
-  }
-
-  // 🔒 Método privado para guardar datos de usuario
-  Future<void> _guardarDatosUsuario(User user, String email, String nombre) async {
-    await _firestore.collection("Usuarios").doc(user.uid).set({
-      "uid": user.uid,
-      "email": email,
-      "nombre": nombre,
-      "fecha_creacion": FieldValue.serverTimestamp(),
-    });
   }
 }
