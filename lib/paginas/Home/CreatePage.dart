@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'package:red_social/paginas/auth/servicios/servicioPublicaciones.dart';
+import 'package:red_social/paginas/auth/servicios/servicios_auth.dart';
+import 'package:red_social/services/servicioPublicacionesAPI.dart';
 
 class CreatePage extends StatefulWidget {
   const CreatePage({super.key});
@@ -13,7 +14,8 @@ class CreatePage extends StatefulWidget {
 class _CreatePageState extends State<CreatePage> {
   File? _image;
   final TextEditingController _descripcionController = TextEditingController();
-  final ServicioPublicaciones _servicioPublicaciones = ServicioPublicaciones();
+  final ServicioPublicacionesAPI _apiService = ServicioPublicacionesAPI();
+  final ServiciosAuth _authService = ServiciosAuth();
   bool _cargando = false;
 
   Future<void> _pickImage() async {
@@ -36,11 +38,20 @@ class _CreatePageState extends State<CreatePage> {
     setState(() => _cargando = true);
 
     try {
-      final urlImagen = await _servicioPublicaciones.subirImagen(_image!);
-      await _servicioPublicaciones.crearPublicacion(
-        descripcion: _descripcionController.text.trim(),
-        imagenPath: urlImagen,
+      final uid = _authService.getUsuarioActualUID();
+      if (uid == null) throw Exception("Usuario no autenticado");
+
+      final imagenPath = _image!.path;
+      final descripcion = _descripcionController.text.trim();
+      final fecha = DateTime.now().toUtc().toIso8601String();
+
+      await _apiService.crearPublicacion(
+        uid: uid,
+        descripcion: descripcion,
+        imagenPath: imagenPath,
+        fecha: fecha,
       );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Publicación creada exitosamente")),
       );
@@ -48,7 +59,9 @@ class _CreatePageState extends State<CreatePage> {
         _image = null;
         _descripcionController.clear();
       });
-    } catch (e) {
+    } catch (e, stack) {
+      print("Error al crear publicación: $e");
+      print("StackTrace: $stack");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("❌ Error al crear publicación: $e")),
       );
@@ -80,14 +93,12 @@ class _CreatePageState extends State<CreatePage> {
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: IntrinsicHeight(
                     child: Column(
                       children: [
                         AppBar(
-                          backgroundColor: const Color.fromARGB(0, 0, 0, 0),
+                          backgroundColor: Colors.transparent,
                           elevation: 0,
                           title: const Text(
                             "Nueva publicación",

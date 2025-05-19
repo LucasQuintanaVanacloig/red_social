@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:red_social/paginas/Configuracion/settings.dart' as miSettings;
 import 'package:red_social/paginas/auth/servicios/servicios_auth.dart';
+import 'package:red_social/services/servicioPublicacionesAPI.dart';
 
 class Profile extends StatefulWidget {
   final String? userId;
@@ -18,14 +19,46 @@ class Profile extends StatefulWidget {
 class _ProfileState extends State<Profile> {
   String? userId;
   final ServiciosAuth _authService = ServiciosAuth();
+  final ServicioPublicacionesAPI _apiService = ServicioPublicacionesAPI();
 
   File? _imagenPerfil;
   final TextEditingController _nombreController = TextEditingController();
+
+  Future<List<Map<String, dynamic>>>? _publicacionesFuture;
 
   @override
   void initState() {
     super.initState();
     userId = widget.userId ?? _authService.getUsuarioActualUID();
+    _cargarNombreUsuario();
+    _cargarPublicaciones();
+  }
+
+  void _cargarPublicaciones() {
+  _publicacionesFuture = _apiService.cargarPublicaciones(userId ?? "").then((lista) {
+    lista.sort((a, b) {
+      final fechaA = DateTime.tryParse(a['fecha'] ?? '') ?? DateTime(1970);
+      final fechaB = DateTime.tryParse(b['fecha'] ?? '') ?? DateTime(1970);
+      return fechaB.compareTo(fechaA); // orden descendente
+    });
+    return lista;
+  });
+
+  setState(() {});
+}
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cargarPublicaciones(); // recarga cuando vuelve
+  }
+
+  Future<void> _cargarNombreUsuario() async {
+    String? nombre = await _authService.obtenerNombreUsuario();
+    setState(() {
+      nomUsuari = nombre ?? "No encontrado";
+      _nombreController.text = nomUsuari!;
+    });
   }
 
   void _mostrarModalEditarPerfil() {
@@ -162,13 +195,130 @@ class _ProfileState extends State<Profile> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text(
+          nomUsuari ?? 'Desconocido',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const Settings())).then((_) {
+                _cargarPublicaciones(); // recarga al volver de settings
+              });
+            },
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFFD5E53),
+              Color(0xFFFD754D),
+              Color(0xFFFE8714),
+              Color(0xFFFE6900),
+              Color(0xFF1A1A40),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 90),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white24,
+                    child: Icon(Icons.person, size: 40, color: Colors.white),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatColumn("Publicaciones", "0", () => _showBottomSheet("Publicaciones")),
+                        _buildStatColumn("Seguidores", "0", () => _showBottomSheet("Seguidores")),
+                        _buildStatColumn("Seguidos", "0", () => _showBottomSheet("Seguidos")),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: _mostrarModalEditarPerfil,
+                  child: const Text("Editar perfil", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _publicacionesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text("Error: ${snapshot.error}", style: TextStyle(color: Colors.white)));
+                  }
+
+                  final publicaciones = snapshot.data ?? [];
+
+                  if (publicaciones.isEmpty) {
+                    return const Center(child: Text("No hay publicaciones", style: TextStyle(color: Colors.white70)));
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(8),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 5,
+                      mainAxisSpacing: 5,
+                    ),
+                    itemCount: publicaciones.length,
+                    itemBuilder: (context, index) {
+                      final path = publicaciones[index]["imagenPath"];
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(
+                          File(path),
+                          fit: BoxFit.cover,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatColumn(String label, String count, VoidCallback onTap) {
     return Column(
       children: [
-        Text(
-          count,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        Text(count, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
         GestureDetector(
           onTap: onTap,
           child: Text(label, style: const TextStyle(color: Colors.orangeAccent)),
