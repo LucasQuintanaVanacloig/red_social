@@ -1,8 +1,8 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:red_social/paginas/Configuracion/settings.dart' as miSettings;
 import 'package:red_social/paginas/auth/servicios/servicios_auth.dart';
 
@@ -71,16 +71,45 @@ class _ProfileState extends State<Profile> {
               onPressed: () => Navigator.of(context).pop(),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
               child: const Text('Guardar cambios'),
               onPressed: () async {
                 final nuevoNombre = _nombreController.text.trim();
-                if (nuevoNombre.isNotEmpty) {
-                  await _authService.actualizarNombreUsuario(nuevoNombre);
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(child: CircularProgressIndicator()),
+                );
+
+                try {
+                  if (nuevoNombre.isNotEmpty) {
+                    await _authService.actualizarNombreUsuario(nuevoNombre);
+                  }
+
+                  if (_imagenPerfil != null) {
+                    final storageRef = FirebaseStorage.instance
+                        .ref()
+                        .child('imagenes_perfil')
+                        .child('$userId.jpg');
+
+                    await storageRef.putFile(_imagenPerfil!);
+                    final downloadUrl = await storageRef.getDownloadURL();
+
+                    await FirebaseFirestore.instance
+                        .collection('Usuarios')
+                        .doc(userId)
+                        .update({'imagenUrl': downloadUrl});
+                  }
+
+                  Navigator.of(context).pop(); // Cierra loading
+                  Navigator.of(context).pop(); // Cierra modal
+                } catch (e) {
+                  Navigator.of(context).pop(); // Cierra loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al guardar: $e')),
+                  );
                 }
-                Navigator.of(context).pop();
               },
             ),
           ],
@@ -164,7 +193,11 @@ class _ProfileState extends State<Profile> {
         final seguidores = data?['followersCount'] ?? 0;
         final seguidos = data?['followingCount'] ?? 0;
 
-        _nombreController.text = nombre;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_nombreController.text != nombre) {
+            _nombreController.text = nombre;
+          }
+        });
 
         return Scaffold(
           extendBodyBehindAppBar: true,
@@ -209,10 +242,15 @@ class _ProfileState extends State<Profile> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 40,
+                        backgroundImage: data?['imagenUrl'] != null
+                            ? NetworkImage(data!['imagenUrl'])
+                            : null,
                         backgroundColor: Colors.white24,
-                        child: Icon(Icons.person, size: 40, color: Colors.white),
+                        child: data?['imagenUrl'] == null
+                            ? const Icon(Icons.person, size: 40, color: Colors.white)
+                            : null,
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -243,7 +281,6 @@ class _ProfileState extends State<Profile> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // 🔥 GridView de publicaciones en tiempo real
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance

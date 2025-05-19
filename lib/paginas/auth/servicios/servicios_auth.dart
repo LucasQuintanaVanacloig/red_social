@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // 👈 IMPORTANTE
+import 'package:path/path.dart' as path; // 👈 Para manejar nombres de archivos
 
 class ServiciosAuth {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -104,6 +107,27 @@ class ServiciosAuth {
       }
     } catch (e) {
       print("Error al actualizar el nombre: $e");
+    }
+  }
+
+  // ✅ NUEVO: Subir imagen de perfil a Firebase Storage y devolver URL pública
+  Future<String> subirImagenPerfil(File imagen) async {
+    try {
+      final uid = getUsuarioActualUID();
+      if (uid == null) throw Exception("Usuario no autenticado.");
+
+      final ext = path.extension(imagen.path); // .jpg, .png, etc.
+
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('imagenes_perfil')
+          .child('$uid$ext');
+
+      await ref.putFile(imagen);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      print("Error al subir la imagen de perfil: $e");
+      rethrow;
     }
   }
 }

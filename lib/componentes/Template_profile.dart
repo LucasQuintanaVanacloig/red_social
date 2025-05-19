@@ -53,14 +53,12 @@ class _TemplateProfileState extends State<TemplateProfile> {
           cargando = false;
         });
       } else {
-        print("❌ Documento no existe para UID: $userId");
         setState(() {
           nomUsuari = "No encontrado";
           cargando = false;
         });
       }
     } catch (e) {
-      print("❌ Error en _cargarDatosUsuario: $e");
       setState(() {
         nomUsuari = "Error";
         cargando = false;
