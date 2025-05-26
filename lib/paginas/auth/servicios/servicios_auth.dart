@@ -13,6 +13,9 @@ class ServiciosAuth {
     return _auth.currentUser?.uid;
   }
 
+    // 🚀 NUEVO: Obtener email del usuario actual
+  String? getUsuarioEmail() => _auth.currentUser?.email;
+
   // ✅ Cerrar sesión
   Future<void> cerrarSesion() async {
     await _auth.signOut();
@@ -96,6 +99,17 @@ class ServiciosAuth {
     }
   }
 
+  // 🚀 NUEVO: Obtener la URL de perfil guardada en Firestore
+  Future<String?> obtenerImagenPerfil() async {
+    final uid = getUsuarioActualUID();
+    if (uid == null) return null;
+    final doc = await _firestore.collection("Usuarios").doc(uid).get();
+    if (doc.exists && doc.data()!.containsKey('imagenPerfil')) {
+      return doc.get('imagenPerfil') as String;
+    }
+    return null;
+  }
+
   // ✅ Actualizar nombre del usuario
   Future<void> actualizarNombreUsuario(String nuevoNombre) async {
     try {
@@ -110,7 +124,7 @@ class ServiciosAuth {
     }
   }
 
-  // ✅ NUEVO: Subir imagen de perfil a Firebase Storage y devolver URL pública
+  // ✅ Subir imagen de perfil a Firebase Storage y devolver URL pública
   Future<String> subirImagenPerfil(File imagen) async {
     try {
       final uid = getUsuarioActualUID();
@@ -123,8 +137,19 @@ class ServiciosAuth {
           .child('imagenes_perfil')
           .child('$uid$ext');
 
+      // await ref.putFile(imagen);
+      // return await ref.getDownloadURL();
       await ref.putFile(imagen);
-      return await ref.getDownloadURL();
+      final url = await ref.getDownloadURL();
+
+      // 🚀 Además, guardamos esa URL en Firestore
+      await _firestore.collection('Usuarios').doc(uid).update({
+        'imagenPerfil': url,
+      });
+
+      return url;
+
+
     } catch (e) {
       print("Error al subir la imagen de perfil: $e");
       rethrow;

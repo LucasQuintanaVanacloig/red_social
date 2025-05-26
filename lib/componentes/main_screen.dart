@@ -1,30 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:red_social/paginas/Home/CreatePage.dart';
 import 'package:red_social/paginas/Home/home.dart';
-import 'package:red_social/paginas/Home/profile.dart';
 import 'package:red_social/paginas/Home/search.dart';
+import 'package:red_social/paginas/Home/CreatePage.dart';
+import 'package:red_social/paginas/Home/profile.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
-
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  MainScreenState createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0; // Índice de la pestaña actual
+class MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const Home(),
-    const Search(),
-    const CreatePage(),
-    const Profile(),
-  ];
+  final _homeKey    = GlobalKey<HomeState>();
+  final _profileKey = GlobalKey<ProfileState>();
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index; // Cambiar la pestaña activa
-    });
+  late final List<Widget> _screens;
+
+  MainScreenState() {
+    _screens = [
+      Home(key: _homeKey),
+      const Search(),
+      // Injectamos CreatePage con el callback
+      CreatePage(onPublish: () {
+        _homeKey.currentState?.refreshPosts();
+        _profileKey.currentState?.refreshPosts();
+      }),
+      Profile(key: _profileKey),
+    ];
   }
 
   @override
@@ -35,16 +39,18 @@ class _MainScreenState extends State<MainScreen> {
         children: _screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black, // Fondo negro
+        backgroundColor: Colors.black,
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.white, // Ítem activo en blanco
-        unselectedItemColor: Colors.white70, // Ítems inactivos gris claro
+        onTap: (idx) {
+          setState(() => _selectedIndex = idx);
+        },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.home),   label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: "Buscar"),
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: "Añadir"),
+          BottomNavigationBarItem(icon: Icon(Icons.add),    label: "Añadir"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
         ],
       ),

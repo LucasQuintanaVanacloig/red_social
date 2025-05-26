@@ -1,18 +1,63 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:red_social/services/servicioPublicacionesAPI.dart';
+import 'package:red_social/paginas/auth/servicios/servicios_auth.dart';
 
 class ComentariosScreen extends StatefulWidget {
-  final String postId; // ID de la publicación
-
+  final String postId;
   const ComentariosScreen({super.key, required this.postId});
-
   @override
-  _ComentariosScreenState createState() => _ComentariosScreenState();
+  State<ComentariosScreen> createState() => _ComentariosScreenState();
 }
 
 class _ComentariosScreenState extends State<ComentariosScreen> {
-  final TextEditingController _comentarioController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _api  = ServicioPublicacionesAPI();
+  final _auth = FirebaseAuth.instance;
+  final _ctrl = TextEditingController();
+
+  late Future<List<Map<String,dynamic>>> _comentariosFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComments();
+  }
+
+  void _loadComments() {
+    _comentariosFuture = _api.obtenerPublicacion(widget.postId)
+      .then((pub) {
+        final list = (pub['comentarios'] as List)
+          .cast<Map<String,dynamic>>();
+        list.sort((a,b){
+          final fa=DateTime.parse(a['fecha']), fb=DateTime.parse(b['fecha']);
+          return fb.compareTo(fa);
+        });
+        return list;
+      });
+    setState(() {});
+  }
+
+  Future<void> _onSend() async {
+    final txt = _ctrl.text.trim();
+    if (txt.isEmpty) return;
+    final uid    = _auth.currentUser!.uid;
+    final nombre = await ServiciosAuth().obtenerNombreUsuario() ?? 'Anon';
+    await _api.agregarComentario(
+      postId: widget.postId,
+      uid: uid,
+      usuario: nombre,
+      comentario: txt,
+    );
+    _ctrl.clear();
+    _loadComments();
+  }
+
+  String _fmt(String iso){
+    final d = DateTime.parse(iso).toLocal();
+    return "${d.day}/${d.month}/${d.year} "
+           "${d.hour.toString().padLeft(2,'0')}:"
+           "${d.minute.toString().padLeft(2,'0')}";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,176 +68,83 @@ class _ComentariosScreenState extends State<ComentariosScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () {
-              Navigator.pop(context); // Cerrar la pantalla de comentarios
-            },
-          ),
+            onPressed: () => Navigator.pop(context, 0),
+          )
         ],
       ),
+      backgroundColor: Colors.black,
       body: Column(
         children: [
-          // Parte superior: Información de la publicación (por ejemplo, imagen, texto, etc.)
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            color: Colors.black,
-            child: FutureBuilder<DocumentSnapshot>(
-              future: _firestore.collection('Publicaciones').doc(widget.postId).get(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+          Expanded(
+            child: FutureBuilder<List<Map<String,dynamic>>>(
+              future: _comentariosFuture,
+              builder: (ctx,snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
-                if (!snapshot.hasData || snapshot.data == null) {
+                final coms = snap.data ?? [];
+                if (coms.isEmpty) {
                   return const Center(
-                    child: Text("No se pudo cargar la publicación", style: TextStyle(color: Colors.white)),
+                    child: Text("No hay comentarios aún",
+                      style: TextStyle(color:Colors.white70)),
                   );
                 }
-
-                var postData = snapshot.data!.data() as Map<String, dynamic>;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Título de la publicación
-                    Text(
-                      postData['titulo'] ?? 'Título de la publicación', 
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    // Imagen de la publicación
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        postData['imagenPost'] ?? '',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 200,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Image.asset("assets/img/placeholder.jpg", fit: BoxFit.cover);
-                        },
+                return ListView.builder(
+                  padding: const EdgeInsets.only(top:8),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: coms.length,
+                  itemBuilder: (_,i){
+                    final c = coms[i];
+                    return ListTile(
+                      title: Text(c['usuario'] ?? '',
+                        style: const TextStyle(
+                          color:Colors.white,
+                          fontWeight:FontWeight.bold
+                        )
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    // Descripción de la publicación
-                    Text(
-                      postData['descripcion'] ?? 'Descripción de la publicación',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ],
+                      subtitle: Text(c['comentario'] ?? '',
+                        style: const TextStyle(color:Colors.white70)
+                      ),
+                      trailing: Text(_fmt(c['fecha'] ?? ''),
+                        style: const TextStyle(color:Colors.white38,fontSize:12)
+                      ),
+                    );
+                  },
                 );
               },
             ),
           ),
-          
-          // La mitad inferior de la pantalla es para los comentarios
-          Expanded(
-            child: Container(
-              color: Colors.black,
-              child: Column(
-                children: [
-                  // Lista de comentarios
-                  Expanded(
-                    child: StreamBuilder(
-                      stream: _firestore
-                          .collection('Publicaciones')
-                          .doc(widget.postId)
-                          .collection('comentarios')
-                          .orderBy('fecha', descending: true)
-                          .snapshots(),
-                      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
 
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(
-                            child: Text("No hay comentarios aún.", style: TextStyle(color: Colors.white)),
-                          );
-                        }
-
-                        return ListView.builder(
-                          itemCount: snapshot.data!.docs.length,
-                          itemBuilder: (context, index) {
-                            var comentario = snapshot.data!.docs[index];
-                            var data = comentario.data() as Map<String, dynamic>;
-
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                              title: Text(
-                                data['usuario'] ?? 'Usuario',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
-                              subtitle: Text(
-                                data['comentario'] ?? '',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              trailing: Text(
-                                _formatDate(data['fecha']),
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                              ),
-                            );
-                          },
-                        );
-                      },
+          // input
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _ctrl,
+                    style: const TextStyle(color:Colors.white),
+                    decoration: InputDecoration(
+                      hintText: "Escribe un comentario…",
+                      hintStyle: const TextStyle(color:Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white12,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
-
-                  // Campo de texto para agregar un nuevo comentario
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _comentarioController,
-                            decoration: const InputDecoration(
-                              hintText: "Escribe un comentario...",
-                              hintStyle: TextStyle(color: Colors.white),
-                              border: OutlineInputBorder(),
-                              filled: true,
-                              fillColor: Colors.black,
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.send, color: Colors.white),
-                          onPressed: () {
-                            _agregarComentario();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send, color:Colors.white),
+                  onPressed: _onSend,
+                )
+              ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  // Formatear la fecha para mostrarla en un formato legible
-  String _formatDate(Timestamp timestamp) {
-    var date = timestamp.toDate();
-    return "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}";
-  }
-
-  // Función para agregar un comentario
-  void _agregarComentario() {
-    String comentarioTexto = _comentarioController.text.trim();
-    if (comentarioTexto.isNotEmpty) {
-      var comentario = {
-        'usuario': 'Usuario actual', // Reemplaza con el usuario real
-        'comentario': comentarioTexto,
-        'fecha': FieldValue.serverTimestamp(),
-      };
-
-      _firestore.collection('Publicaciones').doc(widget.postId).collection('comentarios').add(comentario);
-
-      // Limpiar el campo de texto después de enviar el comentario
-      _comentarioController.clear();
-    }
   }
 }
