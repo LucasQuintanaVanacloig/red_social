@@ -5,6 +5,9 @@ import 'package:red_social/componentes/botones.dart';
 import 'package:red_social/componentes/custom_appbar.dart';
 import 'package:red_social/componentes/input_text.dart';
 import 'package:red_social/componentes/main_screen.dart';
+import 'package:flutter/gestures.dart';
+import 'package:red_social/paginas/auth/crear_cuenta.dart';
+
 
 class Login extends StatelessWidget {
   const Login({super.key});
@@ -134,15 +137,31 @@ class Login extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 15),
-                      Center(
-                        child: TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            "¿Olvidaste tu contraseña?",
-                            style: TextStyle(color: Colors.white70),
-                          ),
+                     Center(
+                      child: RichText(
+                        text: TextSpan(
+                          text: '¿Aún no tienes cuenta? ',
+                          style: const TextStyle(color: Colors.white70),
+                          children: [
+                            TextSpan(
+                              text: 'Regístrate',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const CrearCuenta()),
+                                  );
+                                },
+                            ),
+                          ],
                         ),
-                      )
+                      ),
+                    ),
                     ],
                   ),
                 ),

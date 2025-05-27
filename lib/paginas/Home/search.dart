@@ -1,21 +1,40 @@
+import 'dart:async';                      // ← PARA EL DEBOUNCE
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:red_social/componentes/Template_profile.dart';
 
 class Search extends StatefulWidget {
   const Search({super.key});
-
   @override
   _SearchState createState() => _SearchState();
 }
 
 class _SearchState extends State<Search> {
   List<Map<String, dynamic>> searchResults = [];
-  List<String> recentSearches = [];
+  List<String> recentSearches       = [];
   final TextEditingController searchController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  void searchUsers(String query) async {
+  Timer? _debounce;  // ← temporizador
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    searchController.dispose();
+    super.dispose();
+  }
+
+  // Llamar desde onChanged
+  void _onSearchChanged(String query) {
+    // Cancela un debounce anterior
+    _debounce?.cancel();
+    // Arranca uno nuevo de 500 ms
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      searchUsers(query.trim());
+    });
+  }
+
+  Future<void> searchUsers(String query) async {
     if (query.isEmpty) {
       setState(() {
         searchResults.clear();
@@ -23,23 +42,26 @@ class _SearchState extends State<Search> {
       return;
     }
 
-    // Guardar búsqueda reciente
+    // ⏱️ Solo tras debounce guardamos la búsqueda:
     setState(() {
-      recentSearches.remove(query); // Elimina duplicados
+      recentSearches.remove(query);
       recentSearches.insert(0, query);
       if (recentSearches.length > 5) {
         recentSearches = recentSearches.sublist(0, 5);
       }
     });
 
-    QuerySnapshot users = await _firestore
+    // Consulta Firestore
+    final users = await _firestore
         .collection("Usuarios")
         .where("nombre", isGreaterThanOrEqualTo: query)
         .where("nombre", isLessThan: '${query}z')
         .get();
 
     setState(() {
-      searchResults = users.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+      searchResults = users.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
     });
   }
 
@@ -72,13 +94,14 @@ class _SearchState extends State<Search> {
                     });
                   },
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
                 ),
               ),
-              onChanged: searchUsers,
+              onChanged: _onSearchChanged, // ← usa el debounce
             ),
           ),
         ),
@@ -98,8 +121,9 @@ class _SearchState extends State<Search> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.only(top: 100),
-          child: searchController.text.isEmpty && searchResults.isEmpty
+          padding: const EdgeInsets.only(top: 0),
+          child: searchController.text.isEmpty &&
+                  searchResults.isEmpty
               ? _buildRecentSearches()
               : _buildSearchResults(),
         ),
@@ -137,19 +161,15 @@ class _SearchState extends State<Search> {
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
-              title: Text(
-                user['nombre'],
-                style: const TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                user['email'],
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
-              ),
+              title: Text(user['nombre'], style: const TextStyle(color: Colors.white)),
+              subtitle: Text(user['email'],
+                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => TemplateProfile(userId: user['uid']),
+                    builder: (_) =>
+                        TemplateProfile(userId: user['uid']),
                   ),
                 );
               },
@@ -162,13 +182,16 @@ class _SearchState extends State<Search> {
 
   Widget _buildRecentSearches() {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 100),
       children: [
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 10),
           child: Text(
             "Búsquedas recientes",
-            style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
         ),
         ...recentSearches.map((query) {
@@ -177,7 +200,7 @@ class _SearchState extends State<Search> {
             trailing: const Icon(Icons.history, color: Colors.white54),
             onTap: () {
               searchController.text = query;
-              searchUsers(query);
+              _onSearchChanged(query);
             },
           );
         }).toList(),

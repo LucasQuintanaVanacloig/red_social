@@ -206,7 +206,7 @@ class _ProfileState extends State<Profile> {
                         return const CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white24,
-                          child: Icon(Icons.person, size: 40, color: Colors.white),
+                          child: Icon(Icons.person, size: 40, color: Color.fromARGB(255, 251, 0, 0)),
                         );
                       }
                       final data = snapshot.data!.data() as Map<String, dynamic>;

@@ -5,6 +5,8 @@ import 'package:red_social/componentes/custom_appbar.dart';
 import 'package:red_social/componentes/input_text.dart';
 import 'package:red_social/paginas/auth/login.dart';
 import 'package:red_social/paginas/auth/servicios/servicios_auth.dart';
+import 'package:flutter/gestures.dart';
+import 'package:red_social/paginas/auth/login.dart';
 
 class CrearCuenta extends StatefulWidget {
   const CrearCuenta({super.key});
@@ -191,16 +193,30 @@ class _CrearCuentaState extends State<CrearCuenta> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const Login()),
-                          );
-                        },
-                        child: const Text(
-                          "¿Ya tienes cuenta? Inicia sesión",
-                          style: TextStyle(color: Colors.white70),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: RichText(
+                          text: TextSpan(
+                            text: '¿Ya tienes cuenta? ',
+                            style: const TextStyle(color: Colors.white70),
+                            children: [
+                              TextSpan(
+                                text: 'Inicia sesión',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const Login()),
+                                    );
+                                  },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

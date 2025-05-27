@@ -62,6 +62,13 @@ class _CreatePageState extends State<CreatePage> {
       );
       // Dispara el callback de MainScreen para refrescar Home/Profile
       widget.onPublish();
+
+      // **Limpia campos tras éxito**
+      setState(() {
+        _image = null;
+        _descripcionController.clear();
+      });
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("❌ Error: $e")),
@@ -157,41 +164,46 @@ class _CreatePageState extends State<CreatePage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image, color: Colors.white),
-                      label: const Text("Seleccionar Imagen"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orangeAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _pickImage,
+                          icon: const Icon(Icons.image),
+                          label: const Text("Seleccionar Imagen"),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: const Color.fromARGB(255, 255, 255, 255), backgroundColor: const Color.fromARGB(255, 255, 92, 38),          // texto/icono en blanco
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: _cargando ? null : _publicar,
-                      icon: _cargando
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2,
-                              ),
-                            )
-                          : const Icon(Icons.upload, color: Colors.white),
-                      label: Text(
-                        _cargando ? "Publicando..." : "Publicar",
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrangeAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: _cargando ? null : _publicar,
+                          icon: _cargando
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Color.fromARGB(255, 255, 255, 255),
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.upload),
+                          label: Text(
+                            _cargando ? "Publicando..." : "Publicar",
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: const Color.fromARGB(255, 255, 255, 255), backgroundColor: Colors.deepOrangeAccent,        // texto/icono en blanco
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
+                      ],
                     ),
                     const SizedBox(height: 20),
                   ],
